@@ -1,0 +1,54 @@
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+logs
+*.log
+logs/*.log
+
+# Environment variables
+.env
+
+# Database files
+*.sqlite
+*.sqlite3
+
+# Directory for local environments
+.DS_Store
+
+# Build directories
+dist/
+build/
+public/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+
+# Operating system files
+Thumbs.db
+.DS_Store
+
+# Optional npm cache directory
+.npm
+
+# Debugger configuration
+node_modules/
+coverage/
+
+# Local git config
+.gitconfig
+
+# Temp files
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock
+
+# Debug files
+debug.log
