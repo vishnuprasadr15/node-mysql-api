@@ -7,8 +7,12 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const port = 8000;
+const port = process.env.PORT;
 const jwtSecret = process.env.JWT_SECRET;
+const refreshTokenSecret = process.env.JWT_REFRESH_SECRET
+const refreshTokens = []; // In-memory storage for refresh tokens (you might use a database instead)
+
+
 // Middleware
 app.use(bodyParser.json());
 app.use(cors());
@@ -137,10 +141,46 @@ app.post('/login', (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        // Generate JWT token
-        const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '1h' }); // Token expires in 1 hour
+        // Generate JWT bearer and refresh token
+        const payload = { userId: user.id };
+        const token = jwt.sign(payload, jwtSecret, { expiresIn: '1h' }); // Token expires in 1 hour
+        const refreshToken = jwt.sign(payload, refreshTokenSecret, { expiresIn: '30d' }); // Refresh token expires in 30 days
 
-        res.json({ message: 'Login successful', token });
+        refreshTokens.push(refreshToken); // Store the refresh token (use a database in production)
+
+        res.json({ message: 'Login successful', token, refreshToken });
+    });
+});
+
+// Refresh token endpoint
+app.post('/refresh-token', (req, res) => {
+    const { token } = req.body;
+
+    if (!token) return res.status(401).json({ message: 'No refresh token provided' });
+    if (!refreshTokens.includes(token)) return res.status(403).json({ message: 'Invalid refresh token' });
+
+    jwt.verify(token, refreshTokenSecret, (err, user) => {
+        if (err) return res.status(403).json({ message: 'Invalid refresh token' });
+
+        const newAccessToken = jwt.sign({ userId: user.userId }, jwtSecret, { expiresIn: '1h' }); // Generate new access token
+        res.json({ token: newAccessToken });
+    });
+});
+
+// get userid from jwt payload passed from bearer token. use it to fetch user data
+app.get('/user', authenticateToken, (req, res) => {
+    const userId = req.user.userId; // Extract user ID from the JWT payload
+
+    db.query('SELECT * FROM users WHERE id = ?', [userId], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json(results[0]); // Return the details of the user
     });
 });
 
